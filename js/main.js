@@ -41,6 +41,9 @@ class ZineEditor {
     setupEventListeners() {
         // Toolbar actions
         document.getElementById('save-btn').addEventListener('click', () => this.save());
+        document.getElementById('export-json-btn').addEventListener('click', () => this.exportJSON());
+        document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-input').click());
+        document.getElementById('import-input').addEventListener('change', (e) => this.importJSON(e));
         document.getElementById('export-pdf-btn').addEventListener('click', () => this.exportPDF());
         document.getElementById('undo-btn').addEventListener('click', () => this.undo());
         document.getElementById('redo-btn').addEventListener('click', () => this.redo());
@@ -64,7 +67,29 @@ class ZineEditor {
         setInterval(() => this.autoSave(), 30000);
     }
 
+    // ... (keep handleKeyboard, deleteSelectedObject as is, or use multi_replace for targeted edits if they are far apart)
+    // Actually, I'm replacing a large chunk because I need to add methods.
+
+    // Let me target specific chunks for safer edits.
+    // I will return to previous strategy and use targeted replacements.
+
+
     handleKeyboard(e) {
+        // Check if user is typing in an input field or editing text on canvas
+        const activeElement = document.activeElement;
+        const isTypingInInput = activeElement && (
+            activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.tagName === 'SELECT' ||
+            activeElement.isContentEditable
+        );
+
+        // Check if editing text on Fabric.js canvas
+        const activeObject = this.canvasManager.canvas.getActiveObject();
+        const isEditingCanvasText = activeObject &&
+            (activeObject.type === 'i-text' || activeObject.type === 'text') &&
+            activeObject.isEditing;
+
         // Ctrl/Cmd + Z: Undo
         if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
             e.preventDefault();
@@ -85,21 +110,6 @@ class ZineEditor {
 
         // Tool shortcuts - but only if not editing text
         if (!e.ctrlKey && !e.metaKey) {
-            // Check if user is typing in an input field or editing text on canvas
-            const activeElement = document.activeElement;
-            const isTypingInInput = activeElement && (
-                activeElement.tagName === 'INPUT' ||
-                activeElement.tagName === 'TEXTAREA' ||
-                activeElement.tagName === 'SELECT' ||
-                activeElement.isContentEditable
-            );
-
-            // Check if editing text on Fabric.js canvas
-            const activeObject = this.canvasManager.canvas.getActiveObject();
-            const isEditingCanvasText = activeObject &&
-                (activeObject.type === 'i-text' || activeObject.type === 'text') &&
-                activeObject.isEditing;
-
             // Only process shortcuts if not editing text anywhere
             if (!isTypingInInput && !isEditingCanvasText) {
                 switch (e.key.toLowerCase()) {
@@ -120,22 +130,33 @@ class ZineEditor {
         }
 
         // Delete: Remove selected object
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            const activeObject = this.canvasManager.canvas.getActiveObject();
+        // Only if NOT editing text
+        if ((e.key === 'Delete' || e.key === 'Backspace') && !isTypingInInput && !isEditingCanvasText) {
             if (activeObject) {
                 this.canvasManager.canvas.remove(activeObject);
+                this.canvasManager.updateLayersPanel();
                 this.canvasManager.canvas.requestRenderAll();
             }
         }
 
         // +/-: Zoom
-        if (e.key === '+' || e.key === '=') {
+        // Only if NOT editing text
+        if ((e.key === '+' || e.key === '=') && !isTypingInInput && !isEditingCanvasText) {
             e.preventDefault();
             this.canvasManager.zoomIn();
         }
-        if (e.key === '-') {
+        if (e.key === '-' && !isTypingInInput && !isEditingCanvasText) {
             e.preventDefault();
             this.canvasManager.zoomOut();
+        }
+    }
+
+    deleteSelectedObject() {
+        const activeObject = this.canvasManager.canvas.getActiveObject();
+        if (activeObject) {
+            this.canvasManager.canvas.remove(activeObject);
+            this.canvasManager.updateLayersPanel();
+            this.canvasManager.canvas.requestRenderAll();
         }
     }
 
@@ -153,6 +174,41 @@ class ZineEditor {
             btn.innerHTML = originalText;
         }, 2000);
     }
+
+    exportJSON() {
+        const state = {
+            pages: this.pageManager.getState(),
+            currentPage: this.pageManager.currentPageIndex,
+            version: '1.0',
+            exportedAt: Date.now()
+        };
+        this.stateManager.exportToFile(state);
+    }
+
+    async importJSON(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const state = await this.stateManager.importFromFile(file);
+            if (confirm('Importing will overwrite your current work. Continue?')) {
+                // Load state
+                if (state && state.pages) {
+                    await this.pageManager.loadState(state);
+                    console.log('📂 Imported project');
+                } else {
+                    alert('Invalid project file');
+                }
+            }
+        } catch (error) {
+            console.error('Import failed:', error);
+            alert('Failed to import project file');
+        }
+
+        // Reset input
+        e.target.value = '';
+    }
+
 
     autoSave() {
         this.stateManager.save({

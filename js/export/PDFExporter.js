@@ -39,6 +39,10 @@ export class PDFExporter {
             // Switch to this page to render it
             await this.pageManager.switchToPage(i);
 
+            // Wait a moment for rendering to complete (especially images)
+            await new Promise(resolve => setTimeout(resolve, 100));
+            this.pageManager.canvasManager.canvas.requestRenderAll();
+
             // Get canvas as image
             const imgData = this.pageManager.canvasManager.canvas.toDataURL({
                 format: 'png',
@@ -51,7 +55,11 @@ export class PDFExporter {
                 pdf.addPage([pdfWidth, pdfHeight]);
             }
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            try {
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            } catch (err) {
+                console.error(`Error adding page ${i + 1} to PDF:`, err);
+            }
         }
 
         // Restore original page

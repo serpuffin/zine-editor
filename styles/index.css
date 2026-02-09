@@ -323,6 +323,28 @@ body {
     border-color: var(--color-primary);
 }
 
+.page-item.dragging {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+.page-item.drag-over {
+    border-color: var(--color-secondary);
+    background: linear-gradient(135deg, rgba(86, 162, 237, 0.2), rgba(155, 135, 245, 0.2));
+}
+
+.page-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    color: var(--color-text-tertiary);
+}
+
+.page-item:hover .page-drag-handle {
+    color: var(--color-text-secondary);
+}
+
 .page-thumbnail {
     width: 48px;
     height: 64px;

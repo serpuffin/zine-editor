@@ -128,14 +128,22 @@ export class CanvasManager {
                 <div class="divider"></div>
                 <div class="form-group">
                     <label class="form-label">Font Family</label>
-                    <select class="select" value="${obj.fontFamily}" 
+                    <select class="select" 
                         onchange="window.zineEditor?.canvasManager.updateObjectProperty('fontFamily', this.value)">
-                        <option value="Inter">Inter</option>
-                        <option value="Outfit">Outfit</option>
-                        <option value="Arial">Arial</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                        <option value="Courier New">Courier New</option>
-                        <option value="Georgia">Georgia</option>
+                        <option value="Inter" ${obj.fontFamily === 'Inter' ? 'selected' : ''}>Inter</option>
+                        <option value="Outfit" ${obj.fontFamily === 'Outfit' ? 'selected' : ''}>Outfit</option>
+                        <option value="Playfair Display" ${obj.fontFamily === 'Playfair Display' ? 'selected' : ''}>Playfair Display</option>
+                        <option value="Roboto Mono" ${obj.fontFamily === 'Roboto Mono' ? 'selected' : ''}>Roboto Mono</option>
+                        <option value="Oswald" ${obj.fontFamily === 'Oswald' ? 'selected' : ''}>Oswald</option>
+                        <option value="Permanent Marker" ${obj.fontFamily === 'Permanent Marker' ? 'selected' : ''}>Permanent Marker</option>
+                        <option value="Bangers" ${obj.fontFamily === 'Bangers' ? 'selected' : ''}>Bangers</option>
+                        <option value="Special Elite" ${obj.fontFamily === 'Special Elite' ? 'selected' : ''}>Special Elite</option>
+                        <option value="Lobster" ${obj.fontFamily === 'Lobster' ? 'selected' : ''}>Lobster</option>
+                        <option value="Pacifico" ${obj.fontFamily === 'Pacifico' ? 'selected' : ''}>Pacifico</option>
+                        <option value="Arial" ${obj.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
+                        <option value="Times New Roman" ${obj.fontFamily === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
+                        <option value="Courier New" ${obj.fontFamily === 'Courier New' ? 'selected' : ''}>Courier New</option>
+                        <option value="Georgia" ${obj.fontFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
                     </select>
                 </div>
                 <div class="form-group">

@@ -125,11 +125,25 @@ export class PageManager {
             const pageSize = this.pageSizes[page.size];
 
             html += `
-                <div class="page-item ${isActive ? 'active' : ''}" onclick="window.zineEditor?.pageManager.switchToPage(${index})">
-                    <div class="page-thumbnail">
+                <div class="page-item ${isActive ? 'active' : ''}" 
+                    draggable="true"
+                    data-index="${index}"
+                    onclick="window.zineEditor?.pageManager.switchToPage(${index})"
+                    ondragstart="window.zineEditor?.pageManager.handlePageDragStart(event, ${index})"
+                    ondragover="window.zineEditor?.pageManager.handlePageDragOver(event)"
+                    ondrop="window.zineEditor?.pageManager.handlePageDrop(event, ${index})"
+                    ondragend="window.zineEditor?.pageManager.handlePageDragEnd(event)">
+                    <div class="page-drag-handle" style="pointer-events: none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.5">
+                            <circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>
+                            <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                            <circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+                        </svg>
+                    </div>
+                    <div class="page-thumbnail" style="pointer-events: none;">
                         ${page.thumbnail ? `<img src="${page.thumbnail}" alt="Page ${index + 1}">` : ''}
                     </div>
-                    <div class="page-info">
+                    <div class="page-info" style="pointer-events: none;">
                         <div class="page-name">Page ${index + 1}</div>
                         <div class="page-size">${pageSize.name}</div>
                     </div>
@@ -184,5 +198,73 @@ export class PageManager {
         }
 
         return this.pages;
+    }
+
+    // Page reordering methods
+    async movePage(fromIndex, toIndex) {
+        if (fromIndex === toIndex) return;
+        if (fromIndex < 0 || fromIndex >= this.pages.length) return;
+        if (toIndex < 0 || toIndex >= this.pages.length) return;
+
+        // Save current page before reordering
+        await this.saveCurrentPage();
+
+        // Remove page from old position and insert at new position
+        const [page] = this.pages.splice(fromIndex, 1);
+        this.pages.splice(toIndex, 0, page);
+
+        // Update current page index if affected
+        if (this.currentPageIndex === fromIndex) {
+            this.currentPageIndex = toIndex;
+        } else if (fromIndex < this.currentPageIndex && toIndex >= this.currentPageIndex) {
+            this.currentPageIndex--;
+        } else if (fromIndex > this.currentPageIndex && toIndex <= this.currentPageIndex) {
+            this.currentPageIndex++;
+        }
+
+        this.updatePagesUI();
+        console.log(`📄 Moved page from position ${fromIndex + 1} to ${toIndex + 1}`);
+    }
+
+    handlePageDragStart(e, index) {
+        e.dataTransfer.setData('text/plain', index.toString());
+        e.dataTransfer.effectAllowed = 'move';
+        e.target.classList.add('dragging');
+    }
+
+    handlePageDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        // Add visual feedback
+        const target = e.target.closest('.page-item');
+        if (target && !target.classList.contains('dragging')) {
+            // Remove drag-over class from all items first
+            document.querySelectorAll('.page-item.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+            target.classList.add('drag-over');
+        }
+    }
+
+    handlePageDrop(e, targetIndex) {
+        e.preventDefault();
+        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+
+        // Remove visual feedback
+        document.querySelectorAll('.page-item.drag-over').forEach(el => {
+            el.classList.remove('drag-over');
+        });
+
+        if (fromIndex !== targetIndex) {
+            this.movePage(fromIndex, targetIndex);
+        }
+    }
+
+    handlePageDragEnd(e) {
+        e.target.classList.remove('dragging');
+        document.querySelectorAll('.page-item.drag-over').forEach(el => {
+            el.classList.remove('drag-over');
+        });
     }
 }

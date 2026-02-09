@@ -36,7 +36,7 @@ Simply open `index.html` in a modern web browser to start creating your zine!
 No build process required! Just:
 ```bash
 # Clone the repository
-git clone <this repo's url>
+git clone <this repo url>
 cd zine-editor
 
 # Open in browser

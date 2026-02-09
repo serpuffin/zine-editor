@@ -45,6 +45,9 @@ export class CanvasManager {
 
         // Handle text scaling to prevent distortion
         this.canvas.on('object:scaling', (e) => this.onObjectScaling(e));
+
+        // Keyboard shortcuts for layer reordering
+        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
     }
 
     onObjectScaling(e) {
@@ -296,10 +299,6 @@ export class CanvasManager {
             <div class="layer-item ${isSelected ? 'selected' : ''}" 
                 draggable="true"
                 data-index="${index}"
-                onclick="window.zineEditor?.canvasManager.selectObject(${index})"
-                ondragstart="window.zineEditor?.canvasManager.handleDragStart(event, ${index})"
-                ondragover="window.zineEditor?.canvasManager.handleDragOver(event)"
-                ondrop="window.zineEditor?.canvasManager.handleDrop(event, ${index})"
             >
                 <div style="pointer-events: none;">
                     <span>${type} ${index + 1}</span>
@@ -310,39 +309,106 @@ export class CanvasManager {
         });
 
         panel.innerHTML = html;
+
+        // Attach event listeners programmatically for proper event handling
+        const layerItems = panel.querySelectorAll('.layer-item');
+        layerItems.forEach((item, index) => {
+            // Click to select
+            item.addEventListener('click', () => {
+                this.selectObject(index);
+            });
+
+            // Drag and drop events
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', index.toString());
+                item.classList.add('dragging');
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                const targetIndex = index;
+
+                if (fromIndex !== targetIndex) {
+                    this.reorderObjects(fromIndex, targetIndex);
+                }
+            });
+
+            item.addEventListener('dragend', (e) => {
+                item.classList.remove('dragging');
+            });
+        });
     }
 
-    handleDragStart(e, index) {
-        e.dataTransfer.setData('text/plain', index);
-        e.dataTransfer.effectAllowed = 'move';
-        // Add a class for styling being dragged?
-    }
 
-    handleDragOver(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    }
-
-    handleDrop(e, targetIndex) {
-        e.preventDefault();
-        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-
-        if (fromIndex !== targetIndex) {
-            this.reorderObjects(fromIndex, targetIndex);
-        }
-    }
 
     reorderObjects(fromIndex, targetIndex) {
         const objects = this.canvas.getObjects();
         const objectToMove = objects[fromIndex];
 
         if (objectToMove) {
-            // Move object in fabric canvas
-            this.canvas.moveTo(objectToMove, targetIndex);
+            // Remove the object from canvas
+            this.canvas.remove(objectToMove);
+
+            // Re-insert at the target index
+            // Fabric.js maintains objects in a private array, we need to insert at the right position
+            this.canvas.insertAt(objectToMove, targetIndex);
+
             this.canvas.requestRenderAll();
             this.updateLayersPanel();
         }
     }
+
+    handleKeyDown(e) {
+        // Only handle arrow keys when an object is selected
+        const activeObject = this.canvas.getActiveObject();
+        if (!activeObject) return;
+
+        // Check if user is typing in an input field
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+            return;
+        }
+
+        const objects = this.canvas.getObjects();
+        const currentIndex = objects.indexOf(activeObject);
+
+        if (currentIndex === -1) return;
+
+        let targetIndex = null;
+
+        switch (e.key) {
+            case 'ArrowUp':
+                // Move up in layer stack (higher z-index)
+                if (currentIndex < objects.length - 1) {
+                    targetIndex = currentIndex + 1;
+                }
+                e.preventDefault();
+                break;
+            case 'ArrowDown':
+                // Move down in layer stack (lower z-index)
+                if (currentIndex > 0) {
+                    targetIndex = currentIndex - 1;
+                }
+                e.preventDefault();
+                break;
+        }
+
+        if (targetIndex !== null) {
+            this.reorderObjects(currentIndex, targetIndex);
+            // Keep the object selected after reordering
+            this.canvas.setActiveObject(activeObject);
+            this.canvas.requestRenderAll();
+        }
+    }
+
+
 
     selectObject(index) {
         const objects = this.canvas.getObjects();

@@ -42,6 +42,31 @@ export class CanvasManager {
         this.canvas.on('object:modified', (e) => this.onObjectModified(e));
         this.canvas.on('object:added', (e) => this.onObjectAdded(e));
         this.canvas.on('object:removed', (e) => this.onObjectRemoved(e));
+
+        // Handle text scaling to prevent distortion
+        this.canvas.on('object:scaling', (e) => this.onObjectScaling(e));
+    }
+
+    onObjectScaling(e) {
+        const obj = e.target;
+
+        // Only apply to text objects
+        if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') {
+            // Get the scaled dimensions
+            const newWidth = obj.width * obj.scaleX;
+            const newHeight = obj.height * obj.scaleY;
+
+            // Reset scale to 1 and adjust width instead
+            // This prevents font distortion
+            obj.set({
+                width: newWidth,
+                scaleX: 1,
+                scaleY: 1
+            });
+
+            // Update coordinates
+            obj.setCoords();
+        }
     }
 
     onSelectionChange(e) {
@@ -347,7 +372,16 @@ export class CanvasManager {
             obj.set(prop, value);
         }
 
+        // Update object coordinates for proper rendering
+        obj.setCoords();
+
+        // Trigger modified event for history tracking
+        this.canvas.fire('object:modified', { target: obj });
+
         this.canvas.requestRenderAll();
+
+        // Refresh the properties panel to show updated values
+        this.updatePropertiesPanel(obj);
     }
 
 

@@ -3,6 +3,7 @@ import { CanvasManager } from './canvas/CanvasManager.js';
 import { PageManager } from './pages/PageManager.js';
 import { ToolManager } from './tools/ToolManager.js';
 import { StateManager } from './utils/StateManager.js';
+import { HistoryManager } from './utils/HistoryManager.js';
 import { PDFExporter } from './export/PDFExporter.js';
 
 class ZineEditor {
@@ -11,6 +12,7 @@ class ZineEditor {
         this.pageManager = null;
         this.toolManager = null;
         this.stateManager = null;
+        this.historyManager = null;
         this.pdfExporter = null;
 
         this.init();
@@ -22,6 +24,7 @@ class ZineEditor {
         // Initialize managers
         this.stateManager = new StateManager();
         this.canvasManager = new CanvasManager('main-canvas');
+        this.historyManager = new HistoryManager(this.canvasManager);
         this.pageManager = new PageManager(this.canvasManager, this.stateManager);
         this.toolManager = new ToolManager(this.canvasManager);
         this.pdfExporter = new PDFExporter(this.pageManager);
@@ -228,13 +231,11 @@ class ZineEditor {
     }
 
     undo() {
-        // TODO: Implement undo functionality
-        console.log('⏪ Undo');
+        this.historyManager.undo();
     }
 
     redo() {
-        // TODO: Implement redo functionality
-        console.log('⏩ Redo');
+        this.historyManager.redo();
     }
 
     async exportPDF() {

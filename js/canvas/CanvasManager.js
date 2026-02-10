@@ -53,23 +53,22 @@ export class CanvasManager {
     onObjectScaling(e) {
         const obj = e.target;
 
-        // Only apply to text objects
-        if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') {
-            // Get the scaled dimensions
+        // Removed text types from this check. 
+        // Only apply the "reset scale" logic to shapes if you want them to resize cleanly.
+        if (obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle') {
             const newWidth = obj.width * obj.scaleX;
             const newHeight = obj.height * obj.scaleY;
 
-            // Reset scale to 1 and adjust width instead
-            // This prevents font distortion
             obj.set({
                 width: newWidth,
+                height: newHeight, // Don't forget height for shapes!
                 scaleX: 1,
                 scaleY: 1
             });
 
-            // Update coordinates
             obj.setCoords();
         }
+        // Text objects will now use default Fabric.js behavior (scaling up/down correctly)
     }
 
     onSelectionChange(e) {
@@ -434,8 +433,57 @@ export class CanvasManager {
             obj.scaleX = value / obj.width;
         } else if (prop === 'height') {
             obj.scaleY = value / obj.height;
-        } else {
+        } else if (prop === 'fontFamily') {
+            // 1. Set property immediately
             obj.set(prop, value);
+
+            const fontName = value;
+            const fontString = `normal normal 400 12px "${fontName}"`;
+
+            if (document.fonts) {
+                document.fonts.load(fontString).then(() => {
+                    // --- NEW FIX START - fixing the text overflow issue when resizing fonts after typing ---
+                    // Check if the user is currently editing (typing) in this box
+                    const wasEditing = obj.isEditing;
+                    // Save cursor position so we don't lose their place
+                    const selectionStart = obj.selectionStart;
+                    const selectionEnd = obj.selectionEnd;
+
+                    // 1. Force exit editing mode. 
+                    // This destroys the hidden textarea and unlocks the dimensions.
+                    if (wasEditing) {
+                        obj.exitEditing();
+                    }
+
+                    // 2. Clear Cache (from previous fix)
+                    if (fabric.charWidthsCache && fabric.charWidthsCache[fontName]) {
+                        delete fabric.charWidthsCache[fontName];
+                    }
+
+                    // 3. Apply Font & Recalculate
+                    obj.set('fontFamily', fontName);
+
+                    if (obj.initDimensions) {
+                        obj.initDimensions();
+                    }
+
+                    // 4. Restore Editing Mode
+                    // We re-create the editing session with the NEW correct dimensions
+                    if (wasEditing) {
+                        obj.enterEditing();
+                        // Restore cursor position
+                        obj.selectionStart = selectionStart;
+                        obj.selectionEnd = selectionEnd;
+                    }
+                    // --- NEW FIX END ---
+
+                    obj.dirty = true;
+                    obj.setCoords();
+                    this.canvas.requestRenderAll();
+                }).catch((err) => {
+                    console.error('Error loading font:', err);
+                });
+            }
         }
 
         // Update object coordinates for proper rendering

@@ -36,8 +36,21 @@ export class TextTool {
             fontFamily: 'Inter',
             fontSize: 24,
             fill: '#1a1a24',
-            editable: true
+            editable: true,
+            // Disable object caching for text to ensure crisp rendering during edits
+            objectCaching: false
         });
+
+        // --- NEW SAFETY FIX ---
+        // When user starts typing, force a clean measurement of characters
+        text.on('editing:entered', () => {
+            const fontName = text.fontFamily;
+            if (fabric.charWidthsCache && fabric.charWidthsCache[fontName]) {
+                delete fabric.charWidthsCache[fontName];
+            }
+            text.initDimensions();
+        });
+        // ----------------------
 
         this.canvasManager.canvas.add(text);
         this.canvasManager.canvas.setActiveObject(text);

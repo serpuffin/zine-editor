@@ -63,6 +63,25 @@ class ZineEditor {
             this.pageManager.addPage(selectedSize);
         });
 
+        // Master pages
+        document.getElementById('toggle-master-mode-btn').addEventListener('click', () => {
+            this.pageManager.toggleMasterMode();
+        });
+
+        document.getElementById('create-master-btn').addEventListener('click', () => {
+            const name = prompt('Enter master page name:');
+            if (name) {
+                const sizeSelect = document.getElementById('page-size-select');
+                const selectedSize = sizeSelect.value;
+                this.pageManager.addMaster(name, selectedSize);
+            }
+        });
+
+        // Spread view
+        document.getElementById('toggle-spread-view-btn').addEventListener('click', () => {
+            this.pageManager.toggleSpreadView();
+        });
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
 

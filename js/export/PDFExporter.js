@@ -19,51 +19,92 @@ export class PDFExporter {
 
         // Get first page to determine PDF dimensions
         const firstPage = pages[0];
-        const pdfWidth = firstPage.width * 0.352778; // Convert pixels to mm (72 DPI)
-        const pdfHeight = firstPage.height * 0.352778;
 
-        // Create PDF
+        // CONVERSION: Convert pixels to mm (1 px = 0.264583 mm at 96dpi, or use your specific ratio)
+        // Your exportPage uses 0.352778 (which assumes 72DPI: 1/72 inch * 25.4 mm)
+        const PX_TO_MM = 0.352778;
+        const pdfWidth = firstPage.width * PX_TO_MM;
+        const pdfHeight = firstPage.height * PX_TO_MM;
+        const orientation = pdfWidth > pdfHeight ? 'landscape' : 'portrait';
+
+        // Initialize jsPDF with 'mm'
         const pdf = new jsPDF({
-            orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+            orientation: orientation,
             unit: 'mm',
-            format: [pdfWidth, pdfHeight]
+            format: [pdfWidth, pdfHeight],
+            compress: true
         });
 
         // Save current page index to restore later
         const currentIndex = this.pageManager.currentPageIndex;
+        const wasInSpreadView = this.pageManager.isSpreadView;
+
+        // Exit spread view if active
+        if (wasInSpreadView) {
+            // We need to wait for spread view toggle to complete fully
+            await this.pageManager.toggleSpreadView();
+            // Small delay to ensure canvas is ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
 
         // Export each page
         for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
-
             // Switch to this page to render it
             await this.pageManager.switchToPage(i);
 
-            // Wait a moment for rendering to complete (especially images)
-            await new Promise(resolve => setTimeout(resolve, 100));
-            this.pageManager.canvasManager.canvas.requestRenderAll();
+            // Wait for rendering to complete
+            await new Promise(resolve => setTimeout(resolve, 200));
 
-            // Get canvas as image
-            const imgData = this.pageManager.canvasManager.canvas.toDataURL({
-                format: 'png',
-                quality: 1,
-                multiplier: 2 // Higher resolution for print
+            // Temporarily hide master objects and guides for cleaner export
+            const canvas = this.pageManager.canvasManager.canvas;
+
+            // Ensure white background for JPEG export
+            const originalBg = canvas.backgroundColor;
+            canvas.setBackgroundColor('#ffffff', () => canvas.renderAll());
+
+            const hiddenObjects = [];
+            canvas.getObjects().forEach(obj => {
+                if (obj.isSpineGuide || obj.excludeFromExport) {
+                    obj.visible = false;
+                    hiddenObjects.push(obj);
+                }
             });
 
-            // Add page to PDF (first page is already created)
+            canvas.requestRenderAll();
+
+            // Use JPEG for better compatibility and smaller file size
+            // Reduced multiplier to 1.0 to ensure valid PDF generation
+            const imgData = canvas.toDataURL({
+                format: 'jpeg',
+                quality: 1.0,
+                multiplier: 1.0
+            });
+
+            // Restore hidden objects and background
+            hiddenObjects.forEach(obj => obj.visible = true);
+            canvas.setBackgroundColor(originalBg, () => canvas.renderAll());
+            canvas.requestRenderAll();
+
+            // Add new page to PDF if not the first one
             if (i > 0) {
-                pdf.addPage([pdfWidth, pdfHeight]);
+                // FIXED: Explicitly pass orientation to addPage
+                pdf.addPage([pdfWidth, pdfHeight], orientation);
             }
 
             try {
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                // Use mm dimensions for placement
+                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
             } catch (err) {
                 console.error(`Error adding page ${i + 1} to PDF:`, err);
+                throw new Error(`Failed to add page ${i + 1} to PDF: ${err.message}`);
             }
         }
 
-        // Restore original page
+        // Restore original page and view mode
         await this.pageManager.switchToPage(currentIndex);
+        if (wasInSpreadView) {
+            await this.pageManager.toggleSpreadView();
+        }
 
         // Save PDF
         const filename = `zine-${Date.now()}.pdf`;
@@ -75,6 +116,10 @@ export class PDFExporter {
     // Export single page
     async exportPage(pageIndex) {
         const { jsPDF } = window.jspdf;
+
+        if (!jsPDF) {
+            throw new Error('jsPDF library not loaded');
+        }
 
         const pages = this.pageManager.getAllPages();
         const page = pages[pageIndex];
@@ -89,20 +134,30 @@ export class PDFExporter {
         const pdf = new jsPDF({
             orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
             unit: 'mm',
-            format: [pdfWidth, pdfHeight]
+            format: [pdfWidth, pdfHeight],
+            compress: true
         });
 
         // Switch to page and export
         const currentIndex = this.pageManager.currentPageIndex;
         await this.pageManager.switchToPage(pageIndex);
 
-        const imgData = this.pageManager.canvasManager.canvas.toDataURL({
-            format: 'png',
-            quality: 1,
-            multiplier: 2
+        const canvas = this.pageManager.canvasManager.canvas;
+
+        // Ensure white background for JPEG
+        const originalBg = canvas.backgroundColor;
+        canvas.setBackgroundColor('#ffffff', () => canvas.renderAll());
+
+        const imgData = canvas.toDataURL({
+            format: 'jpeg',
+            quality: 1.0,
+            multiplier: 1.0
         });
 
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        // Restore background
+        canvas.setBackgroundColor(originalBg, () => canvas.renderAll());
+
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
         // Restore page
         await this.pageManager.switchToPage(currentIndex);

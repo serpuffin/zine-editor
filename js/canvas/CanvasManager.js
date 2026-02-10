@@ -535,4 +535,193 @@ export class CanvasManager {
         // Let's keep zoom but re-apply dimensions
         this.setZoom(this.zoom);
     }
+
+    // ========================================
+    // MASTER PAGES & SPREAD VIEW RENDERING
+    // ========================================
+
+    async renderPageWithMaster(pageData, masterData) {
+        this.clear();
+
+        // Load master objects first (bottom layer)
+        if (masterData) {
+            await new Promise((resolve) => {
+                this.canvas.loadFromJSON(masterData, () => {
+                    // Mark all master objects for locking
+                    this.lockMasterObjects();
+                    resolve();
+                });
+            });
+        }
+
+        // Load page objects on top (without clearing canvas)
+        if (pageData && pageData.objects) {
+            await new Promise((resolve) => {
+                // Use enlivenObjects to load objects without clearing canvas
+                fabric.util.enlivenObjects(pageData.objects, (objects) => {
+                    objects.forEach(obj => {
+                        obj.isPageObject = true; // Mark as page object
+                        this.canvas.add(obj);
+                    });
+                    this.canvas.requestRenderAll();
+                    resolve();
+                }, '');
+            });
+        }
+
+        this.updateLayersPanel();
+    }
+
+    lockMasterObjects() {
+        const objects = this.canvas.getObjects();
+        objects.forEach(obj => {
+            // Mark objects with a custom property to identify master objects
+            if (!obj.isPageObject) {
+                obj.selectable = false;
+                obj.evented = false;
+                obj.isMasterObject = true;
+                // Visual indicator - slight opacity
+                if (obj.opacity === undefined || obj.opacity === 1) {
+                    obj.set('opacity', 0.85);
+                }
+            }
+        });
+        this.canvas.requestRenderAll();
+    }
+
+    unlockAllObjects() {
+        const objects = this.canvas.getObjects();
+        objects.forEach(obj => {
+            obj.selectable = true;
+            obj.evented = true;
+            obj.isMasterObject = false;
+            // Restore opacity
+            if (obj.opacity === 0.85) {
+                obj.set('opacity', 1);
+            }
+        });
+        this.canvas.requestRenderAll();
+    }
+
+    async renderSpread(leftPageData, rightPageData, leftMasterData, rightMasterData, pageWidth) {
+        this.clear();
+
+        // Helper to add objects with offset without clearing canvas
+        const addObjectsWithOffset = async (data, offsetX, offsetY, isMaster = false) => {
+            if (!data || !data.objects) return;
+
+            return new Promise((resolve) => {
+                fabric.util.enlivenObjects(data.objects, (objects) => {
+                    objects.forEach(obj => {
+                        obj.set({
+                            left: obj.left + offsetX,
+                            top: obj.top + offsetY
+                        });
+                        obj.setCoords();
+
+                        // Mark objects appropriately
+                        if (isMaster) {
+                            obj.isMasterObject = true;
+                        } else {
+                            obj.isPageObject = true;
+                        }
+
+                        this.canvas.add(obj);
+                    });
+                    resolve();
+                }, '');
+            });
+        };
+
+        // Left page (master + content)
+        if (leftMasterData) {
+            await addObjectsWithOffset(leftMasterData, 0, 0, true);
+        }
+        if (leftPageData) {
+            await addObjectsWithOffset(leftPageData, 0, 0, false);
+        }
+
+        // Right page (master + content)
+        if (rightMasterData) {
+            await addObjectsWithOffset(rightMasterData, pageWidth, 0, true);
+        }
+        if (rightPageData) {
+            await addObjectsWithOffset(rightPageData, pageWidth, 0, false);
+        }
+
+        // Lock master objects
+        this.lockMasterObjects();
+
+        // Draw spine guide
+        this.drawSpineGuide(pageWidth);
+
+        this.canvas.requestRenderAll();
+        this.updateLayersPanel();
+    }
+
+    async loadJSONWithOffset(json, offsetX, offsetY) {
+        if (!json) return;
+
+        return new Promise((resolve) => {
+            this.canvas.loadFromJSON(json, () => {
+                // After loading, offset all newly loaded objects
+                const objects = this.canvas.getObjects();
+                objects.forEach(obj => {
+                    if (!obj._offsetApplied) {
+                        obj.set({
+                            left: obj.left + offsetX,
+                            top: obj.top + offsetY
+                        });
+                        obj._offsetApplied = true;
+                        obj.setCoords();
+                    }
+                });
+                this.canvas.requestRenderAll();
+                resolve();
+            });
+        });
+    }
+
+    drawSpineGuide(xPosition) {
+        // Draw a dashed vertical line at the center (spine/fold)
+        const spine = new fabric.Line(
+            [xPosition, 0, xPosition, this.baseHeight],
+            {
+                stroke: '#999',
+                strokeWidth: 1,
+                strokeDashArray: [5, 5],
+                selectable: false,
+                evented: false,
+                isSpineGuide: true,
+                excludeFromExport: true
+            }
+        );
+
+        this.canvas.add(spine);
+        this.canvas.sendToBack(spine);
+    }
+
+    // Enhanced loadJSON to support offset parameters
+    async loadJSON(json, offsetX = 0, offsetY = 0) {
+        if (!json) return;
+
+        return new Promise((resolve) => {
+            this.canvas.loadFromJSON(json, () => {
+                if (offsetX !== 0 || offsetY !== 0) {
+                    const objects = this.canvas.getObjects();
+                    objects.forEach(obj => {
+                        obj.set({
+                            left: obj.left + offsetX,
+                            top: obj.top + offsetY
+                        });
+                        obj.setCoords();
+                    });
+                }
+                this.canvas.requestRenderAll();
+                this.updateLayersPanel();
+                resolve();
+            });
+        });
+    }
 }
+

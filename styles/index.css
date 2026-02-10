@@ -509,3 +509,50 @@ body {
 .layer-item {
     animation: fadeIn var(--transition-medium) ease-out;
 }
+
+/* ============================================
+   MASTER PAGES & SPREAD VIEW STYLES
+   ============================================ */
+
+/* Section header with buttons */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.section-header .section-title {
+    margin-bottom: 0;
+    flex: 1;
+}
+
+/* Master mode active state */
+#toggle-master-mode-btn.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+/* Spread view active state */
+#toggle-spread-view-btn.active {
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+    color: white;
+}
+
+/* Master page items styling */
+.master-item {
+    border-color: var(--color-accent);
+    background: rgba(255, 100, 140, 0.05);
+}
+
+.master-item.active {
+    border-color: var(--color-accent);
+    background: rgba(255, 100, 140, 0.15);
+}
+
+.master-item:hover {
+    border-color: var(--color-accent);
+    background: rgba(255, 100, 140, 0.1);
+}

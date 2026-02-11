@@ -1,0 +1,27 @@
+FONTLOG for the Hexagothic font.
+
+This file provides detailed information on the Hexagothic font.
+This information should be distributed along with the Hexagothic font and any derivative works.
+
+Basic Font Information
+
+Hexagothic is a typeface initially designed for use in English.
+
+ChangeLog
+
+2 Apr 2025 (Zihan Li) Hexagothic Version 1.001
+- Added a new weight, Hexagothic Thin
+- Kerning issue fix
+- Added common ligatures (ffi, ffl)
+
+31 Mar 2025 (Zihan Li) Hexagothic Version 1.0
+- Initial release
+
+Acknowledgements
+
+If you make modifications be sure to add your name (N), email (E), web-address (if you have one) (W) and description (D). This list is in alphabetical order.
+
+N: Zihan Li
+E: zihan.graphics@gmail.com
+W: N/A
+D: Designer - original glyphs

@@ -157,6 +157,62 @@ export class CanvasManager {
                     <label class="form-label">Font Family</label>
                     <select class="select" 
                         onchange="window.zineEditor?.canvasManager.updateObjectProperty('fontFamily', this.value)">
+                        <optgroup label="📦 Local Fonts">
+                        <option value="Andorra One" ${obj.fontFamily === 'Andorra One' ? 'selected' : ''}>Andorra One</option>
+                        <option value="Aporrheton" ${obj.fontFamily === 'Aporrheton' ? 'selected' : ''}>Aporrheton</option>
+                        <option value="Asterisk Mono" ${obj.fontFamily === 'Asterisk Mono' ? 'selected' : ''}>Asterisk Mono</option>
+                        <option value="Bold Pixels" ${obj.fontFamily === 'Bold Pixels' ? 'selected' : ''}>Bold Pixels</option>
+                        <option value="Brigadier" ${obj.fontFamily === 'Brigadier' ? 'selected' : ''}>Brigadier</option>
+                        <option value="Bubble Sans" ${obj.fontFamily === 'Bubble Sans' ? 'selected' : ''}>Bubble Sans</option>
+                        <option value="Cafe24 Dongdong" ${obj.fontFamily === 'Cafe24 Dongdong' ? 'selected' : ''}>Cafe24 Dongdong</option>
+                        <option value="Circo" ${obj.fontFamily === 'Circo' ? 'selected' : ''}>Circo</option>
+                        <option value="Dot Matrix" ${obj.fontFamily === 'Dot Matrix' ? 'selected' : ''}>Dot Matrix</option>
+                        <option value="Expanse" ${obj.fontFamily === 'Expanse' ? 'selected' : ''}>Expanse</option>
+                        <option value="Foundation Titles Hand" ${obj.fontFamily === 'Foundation Titles Hand' ? 'selected' : ''}>Foundation Titles Hand</option>
+                        <option value="Glitch Goblin" ${obj.fontFamily === 'Glitch Goblin' ? 'selected' : ''}>Glitch Goblin</option>
+                        <option value="Gnocchi" ${obj.fontFamily === 'Gnocchi' ? 'selected' : ''}>Gnocchi</option>
+                        <option value="Good Old DOS" ${obj.fontFamily === 'Good Old DOS' ? 'selected' : ''}>Good Old DOS</option>
+                        <option value="Gothica" ${obj.fontFamily === 'Gothica' ? 'selected' : ''}>Gothica</option>
+                        <option value="Hexagothic" ${obj.fontFamily === 'Hexagothic' ? 'selected' : ''}>Hexagothic</option>
+                        <option value="Honchokomodo" ${obj.fontFamily === 'Honchokomodo' ? 'selected' : ''}>Honchokomodo</option>
+                        <option value="LT Superior Mono" ${obj.fontFamily === 'LT Superior Mono' ? 'selected' : ''}>LT Superior Mono</option>
+                        <option value="Leap" ${obj.fontFamily === 'Leap' ? 'selected' : ''}>Leap</option>
+                        <option value="Left Hand" ${obj.fontFamily === 'Left Hand' ? 'selected' : ''}>Left Hand</option>
+                        <option value="Lulu Monospace" ${obj.fontFamily === 'Lulu Monospace' ? 'selected' : ''}>Lulu Monospace</option>
+                        <option value="MADE Mountain" ${obj.fontFamily === 'MADE Mountain' ? 'selected' : ''}>MADE Mountain</option>
+                        <option value="Marsh Stencil" ${obj.fontFamily === 'Marsh Stencil' ? 'selected' : ''}>Marsh Stencil</option>
+                        <option value="Metal Blackletter" ${obj.fontFamily === 'Metal Blackletter' ? 'selected' : ''}>Metal Blackletter</option>
+                        <option value="Nevermind Compact" ${obj.fontFamily === 'Nevermind Compact' ? 'selected' : ''}>Nevermind Compact</option>
+                        <option value="Nevermind Mono" ${obj.fontFamily === 'Nevermind Mono' ? 'selected' : ''}>Nevermind Mono</option>
+                        <option value="Nevermind Rounded Mono" ${obj.fontFamily === 'Nevermind Rounded Mono' ? 'selected' : ''}>Nevermind Rounded Mono</option>
+                        <option value="Panoptic Monospace" ${obj.fontFamily === 'Panoptic Monospace' ? 'selected' : ''}>Panoptic Monospace</option>
+                        <option value="Paper Inko" ${obj.fontFamily === 'Paper Inko' ? 'selected' : ''}>Paper Inko</option>
+                        <option value="Paragon" ${obj.fontFamily === 'Paragon' ? 'selected' : ''}>Paragon</option>
+                        <option value="Pelicula" ${obj.fontFamily === 'Pelicula' ? 'selected' : ''}>Pelicula</option>
+                        <option value="Pitagon Sans Mono" ${obj.fontFamily === 'Pitagon Sans Mono' ? 'selected' : ''}>Pitagon Sans Mono</option>
+                        <option value="Pixform" ${obj.fontFamily === 'Pixform' ? 'selected' : ''}>Pixform</option>
+                        <option value="Pochwara" ${obj.fontFamily === 'Pochwara' ? 'selected' : ''}>Pochwara</option>
+                        <option value="QR Comic" ${obj.fontFamily === 'QR Comic' ? 'selected' : ''}>QR Comic</option>
+                        <option value="Radio Newsman" ${obj.fontFamily === 'Radio Newsman' ? 'selected' : ''}>Radio Newsman</option>
+                        <option value="Scorn" ${obj.fontFamily === 'Scorn' ? 'selected' : ''}>Scorn</option>
+                        <option value="Sefa" ${obj.fontFamily === 'Sefa' ? 'selected' : ''}>Sefa</option>
+                        <option value="Shehroz" ${obj.fontFamily === 'Shehroz' ? 'selected' : ''}>Shehroz</option>
+                        <option value="Space Grotesk" ${obj.fontFamily === 'Space Grotesk' ? 'selected' : ''}>Space Grotesk</option>
+                        <option value="Stampcraft" ${obj.fontFamily === 'Stampcraft' ? 'selected' : ''}>Stampcraft</option>
+                        <option value="Start Story" ${obj.fontFamily === 'Start Story' ? 'selected' : ''}>Start Story</option>
+                        <option value="Stone Tomb" ${obj.fontFamily === 'Stone Tomb' ? 'selected' : ''}>Stone Tomb</option>
+                        <option value="Super Ghost" ${obj.fontFamily === 'Super Ghost' ? 'selected' : ''}>Super Ghost</option>
+                        <option value="Super Golden" ${obj.fontFamily === 'Super Golden' ? 'selected' : ''}>Super Golden</option>
+                        <option value="Super Midnight" ${obj.fontFamily === 'Super Midnight' ? 'selected' : ''}>Super Midnight</option>
+                        <option value="TASA Explorer" ${obj.fontFamily === 'TASA Explorer' ? 'selected' : ''}>TASA Explorer</option>
+                        <option value="TASA Orbiter" ${obj.fontFamily === 'TASA Orbiter' ? 'selected' : ''}>TASA Orbiter</option>
+                        <option value="TJF Anomaly" ${obj.fontFamily === 'TJF Anomaly' ? 'selected' : ''}>TJF Anomaly</option>
+                        <option value="Terminal Grotesque" ${obj.fontFamily === 'Terminal Grotesque' ? 'selected' : ''}>Terminal Grotesque</option>
+                        <option value="Touchscreen" ${obj.fontFamily === 'Touchscreen' ? 'selected' : ''}>Touchscreen</option>
+                        <option value="Yomogi" ${obj.fontFamily === 'Yomogi' ? 'selected' : ''}>Yomogi</option>
+                        <option value="Yourmate" ${obj.fontFamily === 'Yourmate' ? 'selected' : ''}>Yourmate</option>
+                        </optgroup>
+                        <optgroup label="🌐 Google Fonts">
                         <option value="Inter" ${obj.fontFamily === 'Inter' ? 'selected' : ''}>Inter</option>
                         <option value="Outfit" ${obj.fontFamily === 'Outfit' ? 'selected' : ''}>Outfit</option>
                         <option value="Playfair Display" ${obj.fontFamily === 'Playfair Display' ? 'selected' : ''}>Playfair Display</option>
@@ -167,10 +223,13 @@ export class CanvasManager {
                         <option value="Special Elite" ${obj.fontFamily === 'Special Elite' ? 'selected' : ''}>Special Elite</option>
                         <option value="Lobster" ${obj.fontFamily === 'Lobster' ? 'selected' : ''}>Lobster</option>
                         <option value="Pacifico" ${obj.fontFamily === 'Pacifico' ? 'selected' : ''}>Pacifico</option>
+                        </optgroup>
+                        <optgroup label="💻 System Fonts">
                         <option value="Arial" ${obj.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
                         <option value="Times New Roman" ${obj.fontFamily === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
                         <option value="Courier New" ${obj.fontFamily === 'Courier New' ? 'selected' : ''}>Courier New</option>
                         <option value="Georgia" ${obj.fontFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="form-group">

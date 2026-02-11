@@ -4,14 +4,14 @@ A free-form canvas web application for creating and editing zines with professio
 
 ## Features
 
-- **Free-form Canvas**: Create zines with complete creative freedom
-- **Multi-page Support**: Manage multiple pages with easy navigation
-- **Template System**: Pre-designed templates for quick starts
-- **Text & Image Editing**: Full-featured editing tools powered by Fabric.js
+- **Free-form Canvas**: Create zines with complete creative freedom -- able to do currently
+- **Multi-page Support**: Manage multiple pages with easy navigation -- done
+- **Template System**: Pre-designed templates for quick starts -- in progress
+- **Text & Image Editing**: Full-featured editing tools powered by Fabric.js 
 - **Multiple Page Sizes**: Support for various formats including Half Letter (5.5" x 8.5")
-- **PDF Export**: Export your zines to high-quality PDF using jsPDF
-- **Zoom Controls**: Easily zoom in/out for detailed work
-- **Beginner Friendly**: Designed for both professional designers and beginners
+- **PDF Export**: Export your zines to high-quality PDF using jsPDF -- regular pdf export is done
+- **Zoom Controls**: Easily zoom in/out for detailed work -- 
+- **Beginner Friendly**: Designed for both professional designers and beginners -- I am definitely a beginner
 
 ## Technologies
 
@@ -21,7 +21,7 @@ A free-form canvas web application for creating and editing zines with professio
 
 ## Getting Started
 
-Simply open `index.html` in a modern web browser to start creating your zine!
+Start a local server, then load it up
 
 ## Usage
 
@@ -32,6 +32,7 @@ Simply open `index.html` in a modern web browser to start creating your zine!
 5. Export your finished zine to PDF
 
 ## Local Development
+
 
 No build process required! Just:
 ```bash
@@ -47,4 +48,4 @@ start index.html  # Windows
 
 ## License
 
-MIT License - feel free to use and modify for your projects!
+MIT License - feel free to use and modify for your projects

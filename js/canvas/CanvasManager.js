@@ -342,25 +342,21 @@ export class CanvasManager {
         }
 
         let html = '';
-        // Fabric.js stores objects bottom-up (0 is bottom). 
-        // We want to show them top-down (0 is top), so we iterate in reverse or display accordingly.
-        // Standard layers panels usually show Top layer at the top.
-        // So index N (topmost) should be displayed first in the list?
-        // Let's stick to the current bottom-up order for now or reverse it?
-        // The existing code iterates objects (0 to N), so it displays bottom layer first.
-        // Let's keep it simple and consistent with index for now, but make it draggable.
-
         objects.forEach((obj, index) => {
             const isSelected = this.canvas.getActiveObject() === obj;
-            const type = obj.type === 'i-text' ? 'Text' : obj.type === 'image' ? 'Image' : 'Shape';
+            const type = obj.type === 'i-text' || obj.type === 'text' ? 'Text' : obj.type === 'image' ? 'Image' : 'Shape';
+
+            // Logic: Use custom Name if set, otherwise fallback to Type + Index
+            const displayName = obj.customName || `${type} ${index + 1}`;
+
             html += `
             <div class="layer-item ${isSelected ? 'selected' : ''}" 
                 draggable="true"
                 data-index="${index}"
             >
-                <div style="pointer-events: none;">
-                    <span>${type} ${index + 1}</span>
-                    <span style="font-size: 0.8em; color: #888; margin-left: 8px;">(Layer ${index})</span>
+                <div style="display: flex; align-items: center; width: 100%; overflow: hidden;">
+                    <span class="layer-name" style="pointer-events: auto; cursor: text; font-weight: 500; margin-right: 8px;" title="Double-click to rename">${displayName}</span>
+                    <span style="font-size: 0.8em; color: #888; white-space: nowrap;">(Layer ${index})</span>
                 </div>
             </div>
             `;
@@ -368,15 +364,15 @@ export class CanvasManager {
 
         panel.innerHTML = html;
 
-        // Attach event listeners programmatically for proper event handling
+        // Attach event listeners
         const layerItems = panel.querySelectorAll('.layer-item');
         layerItems.forEach((item, index) => {
-            // Click to select
+            // 1. Selection Click
             item.addEventListener('click', () => {
                 this.selectObject(index);
             });
 
-            // Drag and drop events
+            // 2. Drag and Drop
             item.addEventListener('dragstart', (e) => {
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', index.toString());
@@ -402,9 +398,73 @@ export class CanvasManager {
                 item.classList.remove('dragging');
             });
         });
+
+        // 3. NEW: Rename Listener (Double Click on the name span)
+        const nameSpans = panel.querySelectorAll('.layer-name');
+        nameSpans.forEach((span, index) => {
+            span.addEventListener('dblclick', (e) => {
+                // Stop propagation so we don't trigger other layer actions immediately
+                e.stopPropagation();
+                this.startRenamingLayer(index, span);
+            });
+        });
     }
 
+    startRenamingLayer(index, spanElement) {
+        const objects = this.canvas.getObjects();
+        const obj = objects[index];
+        if (!obj) return;
 
+        const currentName = spanElement.innerText;
+
+        // Create an input field to replace the span
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = obj.customName || currentName; // Use raw custom name if available for editing
+
+        // Inline styles to match the dark theme
+        input.style.width = '100%';
+        input.style.minWidth = '60px';
+        input.style.background = '#0f0f14';
+        input.style.color = 'white';
+        input.style.border = '1px solid #7C3AED'; // Primary accent color
+        input.style.borderRadius = '4px';
+        input.style.padding = '2px 4px';
+        input.style.fontSize = '12px';
+        input.style.fontFamily = 'inherit';
+        input.style.outline = 'none';
+
+        // Save function
+        const saveName = () => {
+            const newName = input.value.trim();
+            if (newName) {
+                obj.customName = newName;
+                // Important: Trigger object modified so Undo/Redo and AutoSave catch this change
+                this.canvas.fire('object:modified', { target: obj });
+            }
+            // Re-render the panel to show normal text again
+            this.updateLayersPanel();
+        };
+
+        // Event listeners for the input
+        input.addEventListener('blur', saveName);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                input.blur(); // Trigger save
+            } else if (e.key === 'Escape') {
+                this.updateLayersPanel(); // Cancel
+            }
+        });
+
+        // Prevent clicks in the input from triggering layer drag/selection
+        input.addEventListener('click', (e) => e.stopPropagation());
+        input.addEventListener('mousedown', (e) => e.stopPropagation());
+
+        // Swap span for input
+        spanElement.replaceWith(input);
+        input.focus();
+        input.select();
+    }
 
     reorderObjects(fromIndex, targetIndex) {
         const objects = this.canvas.getObjects();
@@ -493,68 +553,75 @@ export class CanvasManager {
         } else if (prop === 'height') {
             obj.scaleY = value / obj.height;
         } else if (prop === 'fontFamily') {
-            // 1. Set property immediately
-            obj.set(prop, value);
-
             const fontName = value;
-            const fontString = `normal normal 400 12px "${fontName}"`;
+
+            // 1. Construct a precise font string using the object's current attributes
+            const fontWeight = obj.fontWeight || 'normal';
+            const fontStyle = obj.fontStyle || 'normal';
+            // We use a safe default size for loading, but inherit style/weight
+            const fontString = `${fontStyle} ${fontWeight} 12px "${fontName}"`;
+
+            // 2. Set the font immediately so the visual update starts
+            obj.set('fontFamily', fontName);
+            this.canvas.requestRenderAll();
 
             if (document.fonts) {
                 document.fonts.load(fontString).then(() => {
-                    // --- NEW FIX START - fixing the text overflow issue when resizing fonts after typing ---
-                    // Check if the user is currently editing (typing) in this box
-                    const wasEditing = obj.isEditing;
-                    // Save cursor position so we don't lose their place
-                    const selectionStart = obj.selectionStart;
-                    const selectionEnd = obj.selectionEnd;
+                    // 3. Use a timeout to allow the browser's Canvas context to sync with the loaded font
+                    setTimeout(() => {
+                        // Check if object is still valid
+                        if (!this.canvas.contains(obj)) return;
 
-                    // 1. Force exit editing mode. 
-                    // This destroys the hidden textarea and unlocks the dimensions.
-                    if (wasEditing) {
-                        obj.exitEditing();
-                    }
+                        // Save state
+                        const wasEditing = obj.isEditing;
+                        const selectionStart = obj.selectionStart;
+                        const selectionEnd = obj.selectionEnd;
 
-                    // 2. Clear Cache (from previous fix)
-                    if (fabric.charWidthsCache && fabric.charWidthsCache[fontName]) {
-                        delete fabric.charWidthsCache[fontName];
-                    }
+                        // Force exit editing to unlock dimensions
+                        if (wasEditing) {
+                            obj.exitEditing();
+                        }
 
-                    // 3. Apply Font & Recalculate
-                    obj.set('fontFamily', fontName);
+                        // --- CRITICAL FIX: Robust Cache Clearing ---
+                        // Clear both exact name and lowercase name to ensure stale width data is gone
+                        if (fabric.charWidthsCache) {
+                            delete fabric.charWidthsCache[fontName];
+                            delete fabric.charWidthsCache[fontName.toLowerCase()];
+                        }
 
-                    if (obj.initDimensions) {
+                        // Force recalculation
+                        obj.dirty = true;
                         obj.initDimensions();
-                    }
 
-                    // 4. Restore Editing Mode
-                    // We re-create the editing session with the NEW correct dimensions
-                    if (wasEditing) {
-                        obj.enterEditing();
-                        // Restore cursor position
-                        obj.selectionStart = selectionStart;
-                        obj.selectionEnd = selectionEnd;
-                    }
-                    // --- NEW FIX END ---
+                        // Restore state
+                        if (wasEditing) {
+                            obj.enterEditing();
+                            obj.selectionStart = selectionStart;
+                            obj.selectionEnd = selectionEnd;
+                        }
 
-                    obj.dirty = true;
-                    obj.setCoords();
-                    this.canvas.requestRenderAll();
+                        obj.setCoords();
+                        this.canvas.requestRenderAll();
+
+                        // Update UI to reflect the new accurate bounding box
+                        this.updatePropertiesPanel(obj);
+                    }, 10); // 10ms delay is usually enough to catch the 'lazy' render
                 }).catch((err) => {
                     console.error('Error loading font:', err);
                 });
             }
+        } else {
+            // Handle all other simple properties
+            obj.set(prop, value);
         }
 
-        // Update object coordinates for proper rendering
-        obj.setCoords();
-
-        // Trigger modified event for history tracking
-        this.canvas.fire('object:modified', { target: obj });
-
-        this.canvas.requestRenderAll();
-
-        // Refresh the properties panel to show updated values
-        this.updatePropertiesPanel(obj);
+        // Common updates for all property changes
+        if (prop !== 'fontFamily') {
+            obj.setCoords();
+            this.canvas.fire('object:modified', { target: obj });
+            this.canvas.requestRenderAll();
+            this.updatePropertiesPanel(obj);
+        }
     }
 
 
@@ -621,7 +688,8 @@ export class CanvasManager {
     }
 
     getJSON() {
-        return this.canvas.toJSON();
+        // Include 'customName' in the export so layer names are saved
+        return this.canvas.toJSON(['customName']);
     }
 
     loadJSON(json) {

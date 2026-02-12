@@ -20,8 +20,7 @@ export class PDFExporter {
         // Get first page to determine PDF dimensions
         const firstPage = pages[0];
 
-        // CONVERSION: Convert pixels to mm (1 px = 0.264583 mm at 96dpi, or use your specific ratio)
-        // Your exportPage uses 0.352778 (which assumes 72DPI: 1/72 inch * 25.4 mm)
+        // CONVERSION: 1 px at 72 DPI = 0.352778 mm
         const PX_TO_MM = 0.352778;
         const pdfWidth = firstPage.width * PX_TO_MM;
         const pdfHeight = firstPage.height * PX_TO_MM;
@@ -39,29 +38,29 @@ export class PDFExporter {
         const currentIndex = this.pageManager.currentPageIndex;
         const wasInSpreadView = this.pageManager.isSpreadView;
 
-        // Exit spread view if active
+        // Exit spread view if active to ensure we process single pages correctly
         if (wasInSpreadView) {
-            // We need to wait for spread view toggle to complete fully
             await this.pageManager.toggleSpreadView();
-            // Small delay to ensure canvas is ready
             await new Promise(resolve => setTimeout(resolve, 100));
         }
+
+        // --- QUALITY SETTINGS ---
+        // 1.0 = 72 DPI (Screen)
+        // 4.16 = ~300 DPI (Print)
+        // We use 4.0 for a balance of high quality and performance
+        const EXPORT_SCALE_FACTOR = 4;
 
         // Export each page
         for (let i = 0; i < pages.length; i++) {
             // Switch to this page to render it
             await this.pageManager.switchToPage(i);
 
-            // Wait for rendering to complete
+            // Wait for rendering to complete (vital for fonts)
             await new Promise(resolve => setTimeout(resolve, 200));
 
-            // Temporarily hide master objects and guides for cleaner export
             const canvas = this.pageManager.canvasManager.canvas;
 
-            // Ensure white background for JPEG export
-            const originalBg = canvas.backgroundColor;
-            canvas.setBackgroundColor('#ffffff', () => canvas.renderAll());
-
+            // Temporarily hide guides for cleaner export
             const hiddenObjects = [];
             canvas.getObjects().forEach(obj => {
                 if (obj.isSpineGuide || obj.excludeFromExport) {
@@ -70,14 +69,18 @@ export class PDFExporter {
                 }
             });
 
+            // Ensure white background
+            const originalBg = canvas.backgroundColor;
+            // Set background specifically for export to ensure no transparency
+            canvas.setBackgroundColor('#ffffff', () => canvas.renderAll());
             canvas.requestRenderAll();
 
-            // Use JPEG for better compatibility and smaller file size
-            // Reduced multiplier to 1.0 to ensure valid PDF generation
+            // --- HIGH RES EXPORT ---
+            // format: 'png' ensures text remains crisp (no jpeg artifacts)
+            // multiplier: scales the canvas up to create more pixels
             const imgData = canvas.toDataURL({
-                format: 'jpeg',
-                quality: 1.0,
-                multiplier: 1.0
+                format: 'png',
+                multiplier: EXPORT_SCALE_FACTOR
             });
 
             // Restore hidden objects and background
@@ -87,13 +90,13 @@ export class PDFExporter {
 
             // Add new page to PDF if not the first one
             if (i > 0) {
-                // FIXED: Explicitly pass orientation to addPage
                 pdf.addPage([pdfWidth, pdfHeight], orientation);
             }
 
             try {
-                // Use mm dimensions for placement
-                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                // We fit the HIGH RES image into the PHYSICAL size box (pdfWidth x pdfHeight)
+                // This condenses the pixels, creating high DPI
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             } catch (err) {
                 console.error(`Error adding page ${i + 1} to PDF:`, err);
                 throw new Error(`Failed to add page ${i + 1} to PDF: ${err.message}`);
@@ -128,11 +131,13 @@ export class PDFExporter {
             throw new Error('Page not found');
         }
 
-        const pdfWidth = page.width * 0.352778;
-        const pdfHeight = page.height * 0.352778;
+        const PX_TO_MM = 0.352778;
+        const pdfWidth = page.width * PX_TO_MM;
+        const pdfHeight = page.height * PX_TO_MM;
+        const orientation = pdfWidth > pdfHeight ? 'landscape' : 'portrait';
 
         const pdf = new jsPDF({
-            orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+            orientation: orientation,
             unit: 'mm',
             format: [pdfWidth, pdfHeight],
             compress: true
@@ -144,20 +149,32 @@ export class PDFExporter {
 
         const canvas = this.pageManager.canvasManager.canvas;
 
-        // Ensure white background for JPEG
+        // Hide guides
+        const hiddenObjects = [];
+        canvas.getObjects().forEach(obj => {
+            if (obj.isSpineGuide || obj.excludeFromExport) {
+                obj.visible = false;
+                hiddenObjects.push(obj);
+            }
+        });
+
+        // Ensure white background
         const originalBg = canvas.backgroundColor;
         canvas.setBackgroundColor('#ffffff', () => canvas.renderAll());
 
+        // --- HIGH RES EXPORT ---
+        const EXPORT_SCALE_FACTOR = 4;
+
         const imgData = canvas.toDataURL({
-            format: 'jpeg',
-            quality: 1.0,
-            multiplier: 1.0
+            format: 'png',
+            multiplier: EXPORT_SCALE_FACTOR
         });
 
-        // Restore background
+        // Restore state
+        hiddenObjects.forEach(obj => obj.visible = true);
         canvas.setBackgroundColor(originalBg, () => canvas.renderAll());
 
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
         // Restore page
         await this.pageManager.switchToPage(currentIndex);

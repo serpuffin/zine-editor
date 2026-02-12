@@ -41,14 +41,18 @@ export class TextTool {
             objectCaching: false
         });
 
-        // --- NEW SAFETY FIX ---
-        // When user starts typing, force a clean measurement of characters
+        // --- UPDATED SAFETY FIX ---
+        // Force clean measurement when entering edit mode to prevent cursor drift
         text.on('editing:entered', () => {
             const fontName = text.fontFamily;
-            if (fabric.charWidthsCache && fabric.charWidthsCache[fontName]) {
+            if (fabric.charWidthsCache) {
+                // Clear both variations of the key
                 delete fabric.charWidthsCache[fontName];
+                delete fabric.charWidthsCache[fontName.toLowerCase()];
             }
             text.initDimensions();
+            text.setCoords();
+            this.canvasManager.canvas.requestRenderAll();
         });
         // ----------------------
 
